@@ -19,6 +19,23 @@ pub struct HubInfo {
 }
 
 #[derive(Deserialize)]
+struct CameraList {
+    camera: Vec<Camera>,
+}
+
+#[derive(Deserialize, Debug)]
+pub struct Camera {
+    pub id: String,
+    pub name: String,
+    pub url: String,
+    pub streaming_url: String,
+    pub width: u32,
+    pub height: u32,
+    pub disabled: bool,
+    pub is_alert_disabled: bool,
+}
+
+#[derive(Deserialize)]
 struct HubError {
     err_msg: String,
 }
@@ -49,6 +66,21 @@ impl Hub {
 
         // TODO: Figure out how to tell if this is an auth error or not and surface it
         result
+    }
+
+    pub fn list_cameras(&self) -> Result<Vec<Camera>, reqwest::Error> {
+        let result = self
+            .api_client
+            .get(self.get_api_url("ListCameras".to_string()))
+            .basic_auth(&self.username, Some(&self.password))
+            .send()?
+            .json::<CameraList>();
+
+        // TODO: Figure out how to tell if this is an auth error or not and surface it
+        match result {
+            Ok(r) => return Ok(r.camera),
+            Err(e) => Err(e),
+        }
     }
 
     // Helper to construct an API url from the configured address and a path
