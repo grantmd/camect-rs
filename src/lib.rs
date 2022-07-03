@@ -1,3 +1,4 @@
+use base64;
 use reqwest::blocking::Client;
 use serde::Deserialize;
 
@@ -36,6 +37,11 @@ pub struct Camera {
 }
 
 #[derive(Deserialize)]
+struct Snapshot {
+    jpeg_data: String,
+}
+
+#[derive(Deserialize)]
 struct HubError {
     err_msg: String,
 }
@@ -68,6 +74,7 @@ impl Hub {
         result
     }
 
+    // Lists the cameras configured with a Hub
     pub fn list_cameras(&self) -> Result<Vec<Camera>, reqwest::Error> {
         let result = self
             .api_client
@@ -79,6 +86,31 @@ impl Hub {
         // TODO: Figure out how to tell if this is an auth error or not and surface it
         match result {
             Ok(r) => return Ok(r.camera),
+            Err(e) => Err(e),
+        }
+    }
+
+    // Takes a snapshot of a given camera, returning the vec of bytes
+    pub fn snapshot_camera(
+        &self,
+        camera_id: String,
+        width: u32,
+        height: u32,
+    ) -> Result<Vec<u8>, reqwest::Error> {
+        let result = self
+            .api_client
+            .get(self.get_api_url("SnapshotCamera".to_string()))
+            .basic_auth(&self.username, Some(&self.password))
+            .query(&[
+                ("CamId", camera_id),
+                ("Width", width.to_string()),
+                ("Height", height.to_string()),
+            ])
+            .send()?
+            .json::<Snapshot>();
+
+        match result {
+            Ok(r) => return Ok(base64::decode(r.jpeg_data).unwrap()),
             Err(e) => Err(e),
         }
     }
