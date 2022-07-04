@@ -1,6 +1,13 @@
 use base64;
+use http::header::{self, HeaderValue};
+use native_tls::{TlsConnector, TlsStream};
 use reqwest::blocking::Client;
 use serde::Deserialize;
+use std::error::Error;
+use std::net::TcpStream;
+use tungstenite::client::{self, IntoClientRequest};
+use tungstenite::handshake::client::Response;
+use tungstenite::protocol::WebSocket;
 
 // The Hub is &the entry point for listing cameras and getting alerts
 #[derive(Debug)]
@@ -47,7 +54,7 @@ struct HubError {
 }
 
 impl Hub {
-    // Create a new hub instance
+    // Create a new hub instance. Does not do any connecting
     pub fn new(address: String, username: String, password: String) -> Hub {
         Hub {
             address,
@@ -113,6 +120,33 @@ impl Hub {
             Ok(r) => return Ok(base64::decode(r.jpeg_data).unwrap()),
             Err(e) => Err(e),
         }
+    }
+
+    // Connects to the websocket in order to process events
+    pub fn connect(&self) -> Result<Response, Box<dyn Error>> {
+        let connector = TlsConnector::builder()
+            .danger_accept_invalid_hostnames(true)
+            .build()?;
+
+        let stream = TcpStream::connect(format!("{}:443", &self.address))?;
+        let stream = connector.connect(&self.address, stream)?;
+        let mut request = format!("wss://{}/api/event_ws", &self.address).into_client_request()?;
+        let authorization = format!(
+            "Basic {}",
+            base64::encode(format!("{}:{}", &self.username, &self.password))
+        );
+        request.headers_mut().insert(
+            header::AUTHORIZATION,
+            HeaderValue::from_str(authorization.as_str())?,
+        );
+        let (mut socket, response) = tungstenite::client(request, stream)?;
+
+        loop {
+            let msg = &socket.read_message()?;
+            println!("Received: {}", msg);
+        }
+
+        Ok(response)
     }
 
     // Helper to construct an API url from the configured address and a path
