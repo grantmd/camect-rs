@@ -1,13 +1,12 @@
 use base64;
 use http::header::{self, HeaderValue};
-use native_tls::{TlsConnector, TlsStream};
+use native_tls::TlsConnector;
 use reqwest::blocking::Client;
 use serde::Deserialize;
 use std::error::Error;
 use std::net::TcpStream;
-use tungstenite::client::{self, IntoClientRequest};
+use tungstenite::client::IntoClientRequest;
 use tungstenite::handshake::client::Response;
-use tungstenite::protocol::WebSocket;
 
 // The Hub is &the entry point for listing cameras and getting alerts
 #[derive(Debug)]

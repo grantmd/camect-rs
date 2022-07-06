@@ -1,13 +1,6 @@
 // Connects to the Camect Hub and writes out events as they come in
 // Usage: cargo run --example snapshot camect.local username password
-use http::header::{self, HeaderValue};
-use native_tls::TlsConnector;
 use std::env;
-use std::net::TcpStream;
-use tungstenite::{
-    client::{self, IntoClientRequest},
-    Message,
-};
 
 fn main() {
     env_logger::init();
