@@ -8,7 +8,7 @@ use std::net::TcpStream;
 use tungstenite::client::IntoClientRequest;
 use tungstenite::handshake::client::Response;
 
-// The Hub is &the entry point for listing cameras and getting alerts
+// The Hub is the entry point for listing cameras and getting alerts
 #[derive(Debug)]
 pub struct Hub {
     address: String,
